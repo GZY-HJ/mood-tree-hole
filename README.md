@@ -225,3 +225,16 @@ mood-tree-hole/
 ---
 
 本仓库为课程 / 技术评审汇报用途的演示项目，记录只存在本地浏览器，不含任何真实用户数据。
+
+---
+
+## 文档索引
+
+| 文档 | 内容 |
+|---|---|
+| `docs/architecture.md` | 内部分区、页面切换、数据层、AI 劝导话术表、SVG 图表、正念呼吸 |
+| `docs/design-system.md` | 浅色与深色两套 CSS 变量、字体栈、圆角阴影、情绪标签 |
+| `docs/demo-script.md` | 8 分钟技术评审演示脚本与常见提问的回答 |
+| `docs/qa-checklist.md` | 提交前的验收清单：单文件、四个入口、数据、主题、窄屏 |
+| `CHANGELOG.md` | 版本更新记录 |
+| `scripts/verify_single_file.py` | 零外链自检脚本，CI 跑同一份 |
