@@ -1,0 +1,29 @@
+name: verify-single-file
+
+# 每次 push 到 main 或提 PR 时，确认 index.html 仍然是单文件、零依赖、零外链。
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run self check
+        run: python scripts/verify_single_file.py index.html
+
+      - name: Show artifact size
+        run: |
+          echo "index.html 体积：$(wc -c < index.html) 字节"
+          echo "index.html 行数：$(wc -l < index.html) 行"
