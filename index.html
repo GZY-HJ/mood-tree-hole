@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>情绪树洞 · 治愈所有不安</title>
+<style>
+  :root {
+    --canvas: #f5efe9; --surface: #ffffff; --surface-soft: #f6efe7; --surface-deep: #efe5da;
+    --ink: #3d333b; --ink-soft: #8a7f86; --ink-faint: #b7adb3; --line: #e9ddd2;
+    --accent: #c85f74; --accent-deep: #ae4b61; --accent-ink: #ffffff; --accent-soft: #f9e6e6;
+    --gold: #c79a4a; --green: #4f8f6f; --blue: #5b7fb0; --focus: #a4455b;
+    --shadow-sm: 0 1px 2px rgba(61,51,59,.05);
+    --shadow: 0 2px 6px rgba(61,51,59,.05), 0 14px 34px rgba(61,51,59,.08);
+    --shadow-lg: 0 6px 18px rgba(61,51,59,.08), 0 24px 60px rgba(61,51,59,.12);
+    --radius: 18px; --radius-sm: 12px;
+    --font-ui: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  :root.dark {
+    --canvas: #141019; --surface: #211a27; --surface-soft: #2b2231; --surface-deep: #332838;
+    --ink: #ece4ea; --ink-soft: #a89dab; --ink-faint: #6f6572; --line: #3a303f;
+    --accent: #e1788d; --accent-deep: #ea90a2; --accent-ink: #2a161b; --accent-soft: #3d2a31;
+    --gold: #d9b76a; --green: #7fbf9b; --blue: #8aa9d8; --focus: #ee9aac;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.25);
+    --shadow: 0 2px 6px rgba(0,0,0,.3), 0 16px 40px rgba(0,0,0,.35);
+    --shadow-lg: 0 8px 22px rgba(0,0,0,.4), 0 30px 70px rgba(0,0,0,.5);
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; font-family: var(--font-ui); color: var(--ink); line-height: 1.65; min-height: 100vh; background-color: var(--canvas); transition: background-color .45s ease, color .45s ease; }
+  .bg-opal { position: fixed; inset: 0; z-index: -1; overflow: hidden; }
+  .bg-opal i { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .5; transition: background .45s ease; }
+  .bg-opal .o1 { width: 480px; height: 480px; top: -140px; right: -120px; background: rgba(200,95,116,.16); }
+  .bg-opal .o2 { width: 420px; height: 420px; bottom: -160px; left: -120px; background: rgba(199,154,74,.18); }
+  .bg-opal .o3 { width: 360px; height: 360px; top: 32%; left: 58%; background: rgba(168,134,180,.12); }
+  :root.dark .bg-opal .o1 { background: rgba(225,120,141,.16); }
+  :root.dark .bg-opal .o2 { background: rgba(217,183,106,.12); }
+  :root.dark .bg-opal .o3 { background: rgba(143,120,168,.14); }
+
+  .wrap { width: 100%; max-width: 800px; margin: 0 auto; padding: 26px clamp(16px, 4vw, 30px) 80px; }
+
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-mark { width: 50px; height: 50px; border-radius: 16px; flex: none; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--accent), var(--accent-deep)); color: var(--accent-ink); box-shadow: var(--shadow); }
+  .brand h1 { margin: 0; font-size: clamp(22px, 5vw, 29px); letter-spacing: -.01em; line-height: 1.2; }
+  .brand p { margin: 3px 0 0; color: var(--ink-soft); font-size: 13px; }
+  .icon-btn { flex: none; width: 42px; height: 42px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); transition: transform .15s ease, box-shadow .2s ease, background .2s ease; }
+  .icon-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+  .icon-btn:active { transform: translateY(0); }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .icon-btn .icon-sun { display: none; }
+  .icon-btn .icon-moon { display: block; }
+  :root.dark .icon-btn .icon-sun { display: block; }
+  :root.dark .icon-btn .icon-moon { display: none; }
+  .top-actions { display: flex; align-items: center; gap: 10px; }
+  .user-pill { display: inline-flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 7px 8px 7px 12px; box-shadow: var(--shadow-sm); }
+  .user-pill .u-name { font-size: 13px; font-weight: 600; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .user-pill .avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-deep); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex: none; }
+  .btn { font: inherit; font-weight: 600; cursor: pointer; border: 1px solid transparent; border-radius: 14px; padding: 12px 22px; display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: var(--accent-ink); transition: all .18s ease; box-shadow: 0 6px 18px rgba(200,95,116,.3); }
+  .btn:hover { background: var(--accent-deep); transform: translateY(-1px); box-shadow: 0 8px 22px rgba(200,95,116,.4); }
+  .btn:active { transform: translateY(0); }
+  .btn.ghost { background: var(--surface); border-color: var(--line); color: var(--ink); box-shadow: none; }
+  .btn.ghost:hover { background: var(--surface-soft); }
+  .btn.small { padding: 8px 15px; font-size: 13px; border-radius: 11px; font-weight: 500; }
+  .btn.danger { color: var(--accent-deep); }
+  .btn.danger:hover { background: var(--accent-soft); box-shadow: none; }
+  .btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+  .lk { font: inherit; font-size: 13px; background: none; border: none; color: var(--accent-deep); cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 3px; }
+
+  .navtab { display: flex; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 15px; padding: 5px; margin-bottom: 20px; overflow-x: auto; box-shadow: var(--shadow-sm); }
+  .navtab button { flex: 1; min-width: max-content; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; border: none; background: transparent; color: var(--ink-soft); border-radius: 11px; padding: 10px 14px; transition: all .18s ease; white-space: nowrap; }
+  .navtab button:hover { color: var(--ink); }
+  .navtab button.on { background: var(--accent); color: var(--accent-ink); font-weight: 600; box-shadow: 0 5px 14px rgba(200,95,116,.3); }
+
+  .quote { position: relative; margin: 0 0 20px; padding: 18px 22px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .quote::before { content: "“"; position: absolute; top: -10px; left: 14px; font-size: 64px; line-height: 1; color: var(--accent); opacity: .28; font-family: Georgia, serif; }
+  .quote p { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.6; transition: opacity .5s ease; }
+  .quote .q-tag { display: block; margin-top: 10px; font-size: 12px; color: var(--ink-soft); letter-spacing: .04em; }
+
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow-sm); transition: box-shadow .25s ease, transform .2s ease; }
+  .stat:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+  .stat .num { display: block; font-size: 28px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
+  .stat .num .unit { font-size: 14px; font-weight: 500; color: var(--ink-soft); margin-left: 3px; }
+  .stat .lbl { display: block; margin-top: 6px; font-size: 13px; color: var(--ink-soft); }
+  .stat.accent .num { color: var(--accent); }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px; margin-bottom: 18px; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+  .card-head h2 { margin: 0; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .card-head .tag { font-size: 12px; color: var(--ink-soft); background: var(--surface-soft); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+
+  .moods { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 18px; }
+  .mood-btn { font: inherit; font-size: 14px; cursor: pointer; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 8px 15px; transition: all .18s ease; box-shadow: var(--shadow-sm); }
+  .mood-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+  .mood-btn.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; box-shadow: 0 6px 16px rgba(200,95,116,.35); }
+
+  textarea { width: 100%; min-height: 120px; resize: vertical; font: inherit; font-size: 15px; line-height: 1.7; background: var(--surface-soft); color: var(--ink); border: 1px solid transparent; border-radius: 14px; padding: 14px 16px; transition: border-color .2s ease, background .2s ease; }
+  textarea:focus { background: var(--surface); border-color: var(--accent); outline: 2px solid rgba(200,95,116,.2); outline-offset: 0; }
+  .input-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 13px; flex-wrap: wrap; }
+  .pick-chip { font-size: 13px; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 5px 12px; font-weight: 500; display: none; }
+  .pick-chip.show { display: inline-block; }
+  .count { font-size: 13px; color: var(--ink-soft); }
+  .count b { color: var(--ink); font-weight: 600; }
+  .count.limit b, .count.limit { color: var(--accent-deep); }
+
+  .error { display: none; margin: 12px 0 0; padding: 10px 14px; font-size: 13px; color: var(--accent-deep); background: var(--accent-soft); border-radius: 12px; }
+  .error.show { display: block; }
+
+  #aiReply, #advResult { white-space: pre-wrap; font-size: 15px; line-height: 1.8; margin: 6px 0 0; color: var(--ink); }
+
+  /* AI 劝导 · 对话式 */
+  .chat-card { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  .chat-head { display: flex; align-items: center; gap: 12px; padding: 15px 18px; border-bottom: 1px solid var(--line); background: var(--surface-soft); }
+  .chat-ava { width: 44px; height: 44px; border-radius: 13px; background: linear-gradient(135deg, var(--accent), var(--accent-deep)); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; font-size: 22px; flex: none; }
+  .chat-head-txt { min-width: 0; }
+  .chat-name { font-weight: 700; font-size: 15px; }
+  .chat-status { font-size: 12px; color: var(--ink-soft); }
+  .chat-status .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #52b788; margin-right: 5px; vertical-align: 1px; }
+  .chat-body { padding: 18px; display: flex; flex-direction: column; gap: 13px; min-height: 300px; max-height: 430px; overflow-y: auto; }
+  .msg { max-width: 84%; padding: 11px 15px; border-radius: 16px; font-size: 14.5px; line-height: 1.72; white-space: pre-wrap; word-break: break-word; animation: fadeUp .22s ease; }
+  .msg.ai { align-self: flex-start; background: var(--surface-soft); border: 1px solid var(--line); border-top-left-radius: 5px; }
+  .msg.me { align-self: flex-end; background: var(--accent); color: var(--accent-ink); border-top-right-radius: 5px; }
+  .msg.sys { align-self: center; background: transparent; color: var(--ink-soft); font-size: 12px; padding: 2px 8px; }
+  .typing { align-self: flex-start; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 16px; border-top-left-radius: 5px; padding: 11px 15px; font-size: 14px; color: var(--ink-soft); }
+  .typing i { font-style: normal; animation: blink 1s infinite; }
+  @keyframes blink { 0%,100% { opacity: .2; } 50% { opacity: 1; } }
+  .chat-quick { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 18px 14px; }
+  .quick-chip { font: inherit; font-size: 12.5px; cursor: pointer; color: var(--accent-deep); background: var(--accent-soft); border: 1px solid transparent; border-radius: 999px; padding: 6px 12px; transition: all .15s ease; }
+  .quick-chip:hover { background: var(--accent); color: var(--accent-ink); }
+  .chat-compose { display: flex; gap: 10px; align-items: stretch; padding: 4px 18px 18px; }
+  .chat-compose textarea { min-height: 52px; max-height: 120px; font-size: 14px; border-radius: 12px; }
+  .chat-compose .btn { flex: none; border-radius: 12px; padding: 12px 18px; }
+  .chat-hint { padding: 0 18px 16px; text-align: right; }
+  .ai-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--line); }
+  .linkchip { font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--ink); background: var(--surface-soft); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; transition: all .18s ease; }
+  .linkchip:hover { background: var(--accent-soft); border-color: transparent; color: var(--accent-deep); transform: translateY(-1px); }
+
+  .panel { display: none; }
+  .panel.on { display: block; animation: fadeUp .35s ease; }
+
+  .searchbox { width: 100%; display: flex; align-items: center; gap: 8px; background: var(--surface-soft); border-radius: 12px; padding: 9px 13px; margin-bottom: 12px; }
+  .searchbox svg { width: 16px; height: 16px; color: var(--ink-soft); flex: none; }
+  .searchbox input { font: inherit; flex: 1; border: none; background: transparent; color: var(--ink); outline: none; font-size: 14px; }
+
+  .rec { padding: 14px 6px; border-bottom: 1px solid var(--line); display: flex; gap: 14px; align-items: flex-start; }
+  .rec:last-of-type { border-bottom: none; }
+  .rec .rec-dot { width: 34px; height: 34px; border-radius: 10px; flex: none; display: flex; align-items: center; justify-content: center; font-size: 17px; background: var(--surface-soft); }
+  .rec .rec-body { flex: 1; min-width: 0; }
+  .rec .rec-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .rec .rec-mood { font-size: 13px; font-weight: 600; color: var(--accent-deep); }
+  .rec .rec-time { font-size: 12px; color: var(--ink-soft); }
+  .rec .rec-text { margin: 5px 0 0; font-size: 14px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+  .rec .rec-del { flex: none; background: none; border: none; color: var(--ink-faint); cursor: pointer; padding: 4px; border-radius: 8px; transition: color .15s ease, background .15s ease; }
+  .rec .rec-del:hover { color: var(--accent-deep); background: var(--accent-soft); }
+  .rec-num { text-align: center; color: var(--ink-soft); font-size: 13px; padding: 10px 0; }
+  .rec-empty { text-align: center; padding: 22px 10px; color: var(--ink-soft); font-size: 14px; }
+  .rec-ops { display: flex; gap: 18px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
+
+  .charts { display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center; }
+  @media (max-width: 560px) { .charts { grid-template-columns: 1fr; } }
+  .chart-note { font-size: 13px; color: var(--ink-soft); margin: 0 0 12px; }
+  .donut-wrap { position: relative; width: 150px; height: 150px; margin: 0 auto; }
+  .donut-ctr { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+  .donut-ctr .big { font-size: 28px; font-weight: 700; line-height: 1; }
+  .donut-ctr .small { font-size: 11px; color: var(--ink-soft); margin-top: 3px; }
+  .legend { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+  .legend .li { display: flex; align-items: center; gap: 8px; }
+  .legend .dot { width: 10px; height: 10px; border-radius: 3px; }
+  .legend .dot.empty { background: var(--line); }
+  .legend .li .n { margin-left: auto; font-weight: 600; }
+  .mood-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+  .mood-table th, .mood-table td { padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  .mood-table th { color: var(--ink-soft); font-weight: 600; text-align: left; }
+  .mood-table td:last-child, .mood-table th:last-child { text-align: right; }
+
+  .breath-stage { font-size: 21px; font-weight: 700; margin: 16px 0 4px; letter-spacing: .02em; }
+  .breath-clock { font-family: var(--font-mono); font-size: 26px; letter-spacing: .05em; color: var(--accent-deep); }
+  .breath-tip { font-size: 12px; color: var(--ink-soft); margin: 8px 0 16px; }
+  .breath-orbit { width: 190px; height: 190px; margin: 4px auto 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--accent-soft); box-shadow: inset 0 0 40px rgba(200,95,116,.14); }
+  .breath-dot { width: 74px; height: 74px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-deep)); box-shadow: 0 10px 34px rgba(200,95,116,.45); transition: transform 4s ease-in-out, height .2s ease, width .2s ease; }
+
+  input[type=text], input[type=password] { font: inherit; font-size: 15px; color: var(--ink); background: var(--surface-soft); border: 1px solid transparent; border-radius: 12px; padding: 12px 14px; width: 100%; transition: border-color .2s ease, background .2s ease; }
+  input:focus { background: var(--surface); border-color: var(--accent); outline: 2px solid rgba(200,95,116,.2); outline-offset: 0; }
+  .field { margin-bottom: 12px; text-align: left; }
+  .field label { display: block; font-size: 12px; color: var(--ink-soft); margin-bottom: 6px; }
+  .auth-tabs { display: flex; background: var(--surface-soft); border-radius: 12px; padding: 4px; margin-bottom: 18px; }
+  .auth-tabs button { flex: 1; border: none; background: transparent; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; padding: 9px; border-radius: 9px; color: var(--ink-soft); transition: all .18s ease; }
+  .auth-tabs button.on { background: var(--surface); color: var(--accent-deep); box-shadow: var(--shadow-sm); }
+
+  .board-item { padding: 14px 6px; border-bottom: 1px solid var(--line); }
+  .board-item:last-of-type { border-bottom: none; }
+  .board-item .b-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .board-item .b-name { font-size: 14px; font-weight: 700; color: var(--accent-deep); }
+  .board-item .b-anon { font-size: 11px; color: var(--ink-soft); background: var(--surface-soft); border-radius: 999px; padding: 2px 8px; }
+  .board-item .b-time { font-size: 12px; color: var(--ink-soft); margin-left: auto; }
+  .board-item .b-text { margin: 6px 0 0; font-size: 14px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+  .board-composer { display: flex; gap: 10px; flex-direction: column; margin-bottom: 16px; }
+  .board-composer .b-row { display: flex; gap: 10px; align-items: center; }
+  .checkrow { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink-soft); cursor: pointer; flex: none; }
+  .checkrow input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+
+  ::backdrop { background: rgba(30,22,28,.5); backdrop-filter: blur(3px); }
+  dialog { border: 1px solid var(--line); border-radius: 22px; padding: 0; width: min(470px, 92vw); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-lg); }
+  .dlg-body { padding: 26px; text-align: center; }
+  .dlg-actions { display: flex; justify-content: center; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+  .dlg-head { display: flex; justify-content: flex-end; }
+  .dlg-close { border: none; background: none; font-size: 22px; cursor: pointer; color: var(--ink-soft); padding: 2px 6px; line-height: 1; border-radius: 10px; }
+  .dlg-close:hover { background: var(--surface-soft); color: var(--ink); }
+
+  .empty-illus { text-align: center; padding: 26px 10px; color: var(--ink-soft); }
+  .empty-illus .art { font-size: 40px; margin-bottom: 8px; }
+  .empty-illus p { margin: 0; font-size: 14px; }
+
+  #toast { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%) translateY(10px); background: var(--ink); color: var(--surface); padding: 11px 20px; border-radius: 999px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; z-index: 2000; box-shadow: var(--shadow-lg); }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  :root.dark #toast { background: var(--surface-deep); color: var(--ink); }
+
+  #pageLoader { position: fixed; inset: 0; background: var(--canvas); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; z-index: 9000; transition: opacity .5s ease; }
+  #pageLoader.gone { opacity: 0; pointer-events: none; }
+  .loader-core { position: relative; width: 48px; height: 48px; }
+  .loader-core::before { content: ""; position: absolute; inset: 0; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin .9s linear infinite; }
+  #pageLoader p { font-size: 13px; color: var(--ink-soft); margin: 0; letter-spacing: .04em; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  dialog[open] { animation: fadeUp .24s ease; }
+
+  footer { margin-top: 34px; text-align: center; font-size: 12px; color: var(--ink-soft); line-height: 2; }
+  .heart-beat { display: inline-block; animation: heartbeat 1.6s ease-in-out infinite; }
+  @keyframes heartbeat { 0%,100% { transform: scale(1); } 10% { transform: scale(1.18); } 20% { transform: scale(1); } 30% { transform: scale(1.14); } 40% { transform: scale(1); } }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  @media (max-width: 560px) {
+    .card { padding: 17px; } .stats { gap: 10px; } .stat .num { font-size: 23px; }
+    .btn { width: 100%; justify-content: center; } .input-foot { flex-direction: column; align-items: stretch; }
+    .brand-mark { width: 42px; height: 42px; } .top-actions .user-pill .u-name { display: none; }
+  }
+  @media print {
+    .btn, .lk, .linkchip, .mood-btn, .icon-btn, .navtab, #pageLoader, dialog, .bg-opal, .rec-del, .board-composer { display: none !important; }
+    body { background: #fff; color: #000; } .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<div class="bg-opal" aria-hidden="true"><i class="o1"></i><i class="o2"></i><i class="o3"></i></div>
+<div id="pageLoader" aria-hidden="true"><div class="loader-core"></div><p>正在为你布置安静的空间…</p></div>
+
+<main class="wrap" id="mainWrap" hidden="">
+<header>
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7.5-4.5-9.5-9A5.4 5.4 0 0 1 12 6.6 5.4 5.4 0 0 1 21.5 12c-2 4.5-9.5 9-9.5 9Z"></path></svg></div>
+    <div><h1>情绪树洞</h1><p>把心事留在这里 · 安静 · 匿名 · 只属于你</p></div>
+  </div>
+  <div class="top-actions">
+    <div class="user-pill" id="userArea">
+      <span class="avatar" id="userAvatar" hidden="">?</span>
+      <span class="u-name" id="userName">未登录</span>
+      <button class="btn small" id="loginBtn">登录</button>
+      <button class="btn small ghost" id="logoutBtn" hidden="">退出</button>
+    </div>
+    <button id="themeToggle" class="icon-btn" aria-label="切换日夜主题" title="切换日夜主题">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"></path></svg>
+    </button>
+  </div>
+</header>
+
+<div class="quote" role="status" aria-live="polite"><p id="quoteText">慢慢来，谁不是一边崩溃一边自愈。</p><span class="q-tag">💌 今日治愈时刻</span></div>
+
+<nav class="navtab" aria-label="主导航">
+  <button class="on" data-tab="home">🌿 树洞</button>
+  <button data-tab="advise">🤖 AI 劝导</button>
+  <button data-tab="square">🏛️ 广场</button>
+  <button data-tab="me">👤 我的</button>
+</nav>
+
+<!-- 树洞 -->
+<section class="panel on" id="pt-home">
+  <section class="card" aria-label="写下心事">
+    <div class="card-head"><h2>🌤️ 今天心情如何？</h2><span class="tag" id="moodTag">未选择情绪</span></div>
+    <div class="moods" role="group" aria-label="选择情绪状态">
+      <button class="mood-btn" data-mood="😌 平静安然">😌 平静安然</button>
+      <button class="mood-btn" data-mood="😔 低落难过">😔 低落难过</button>
+      <button class="mood-btn" data-mood="😰 焦虑紧绷">😰 焦虑紧绷</button>
+      <button class="mood-btn" data-mood="😡 压抑愤怒">😡 压抑愤怒</button>
+      <button class="mood-btn" data-mood="✨ 温柔期待">✨ 温柔期待</button>
+    </div>
+    <textarea id="moodInput" maxlength="1200" placeholder="把心里的情绪、心事、委屈、迷茫都留在这里。这里永远安全、包容、只有你听得到…"></textarea>
+    <div class="input-foot"><span class="pick-chip" id="pickChip"></span><span class="count"><b id="wordCount">0</b> / 1200</span></div>
+    <p class="error" id="inputError" role="alert"></p>
+    <div style="margin-top:16px; text-align:right;"><button id="submitBtn" class="btn"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"></path><path d="M22 2 15 22l-4-9-9-4Z"></path></svg>保存心情 &amp; 治愈回信</button></div>
+  </section>
+  <p class="error" id="globalError" role="alert"></p>
+  <section class="card" id="aiCard" hidden="">
+    <div class="card-head"><h2>💞 温柔回信</h2><span class="tag">来自树洞 · 仅你可见</span></div>
+    <p id="aiReply"></p>
+    <div class="ai-actions">
+      <button class="linkchip" data-panel="breath">🌬️ 正念呼吸疗愈</button>
+      <button class="linkchip" data-panel="records">📖 查看我的记录</button>
+      <button class="linkchip" data-panel="chart">📊 七日图表</button>
+    </div>
+  </section>
+</section>
+
+<!-- AI 劝导 -->
+<section class="panel" id="pt-advise">
+  <section class="card chat-card" aria-label="AI 劝导对话">
+    <div class="chat-head">
+      <div class="chat-ava">🧠</div>
+      <div class="chat-head-txt">
+        <div class="chat-name">树洞引路人 · AI 陪伴者</div>
+        <div class="chat-status"><span class="dot"></span>在线 · 匿名陪伴 · 内容仅在你本地生成</div>
+      </div>
+    </div>
+    <div class="chat-body" id="chatBody" role="log" aria-live="polite"></div>
+    <div class="chat-quick" id="chatQuick"></div>
+    <div class="chat-compose">
+      <textarea id="advInput" maxlength="300" placeholder="继续说呀，我一直在听…（Enter 发送）"></textarea>
+      <button class="btn" id="advSend">发送</button>
+    </div>
+    <div class="chat-hint"><span class="count"><b id="advCount">0</b> / 300 · 可多轮深入</span></div>
+  </section>
+</section>
+
+<!-- 广场 -->
+<section class="panel" id="pt-square">
+  <section class="card" aria-label="匿名广场留言板">
+    <div class="card-head"><h2>🏛️ 广场 · 匿名树洞</h2><span class="tag" id="boardCount">0 条</span></div>
+    <p class="chart-note">在这里分享今天的小情绪，或留下鼓励他人的一句话。可匿名发布。</p>
+    <div class="board-composer" id="boardComposer" hidden="">
+      <textarea id="boardInput" maxlength="300" placeholder="写下想对树洞或陌生朋友说的话…"></textarea>
+      <div class="b-row">
+        <label class="checkrow"><input type="checkbox" id="boardAnon"/>以匿名发布</label>
+        <span class="count" style="margin-left:auto;"><b id="boardCount2">0</b> / 300</span>
+      </div>
+      <div style="text-align:right;"><button id="boardSend" class="btn small">发布到广场</button></div>
+    </div>
+    <div class="empty-illus" id="boardLoginHint">
+      <div class="art">🔒</div>
+      <p>登录后就能在广场留下你的声音，也看看其他人今天的心情。</p>
+      <div style="margin-top:14px;"><button id="boardLoginCta" class="btn small">去登录</button></div>
+    </div>
+    <div id="boardList"></div>
+  </section>
+</section>
+
+<!-- 我的 -->
+<section class="panel" id="pt-me">
+  <div class="empty-illus" id="meLoginHint">
+    <div class="art">🙋</div>
+    <p>登录后查看你的记录、情绪图表和正念呼吸空间。</p>
+    <div style="margin-top:14px;"><button id="meLoginCta" class="btn small">去登录 / 注册</button></div>
+  </div>
+  <div id="meBlock" hidden="">
+    <section class="card" style="margin-bottom:18px;">
+      <div class="card-head"><h2>🙋 我的空间</h2><span class="tag" id="meSince">自今天起</span></div>
+      <section class="stats" aria-label="数据摘要" style="margin-bottom:0;">
+        <div class="stat accent"><span class="num" id="stToday">0<span class="unit">条</span></span><span class="lbl">🌤️ 今日安放</span></div>
+        <div class="stat"><span class="num" id="stTotal">0<span class="unit">条</span></span><span class="lbl">📚 累计记录</span></div>
+        <div class="stat"><span class="num" id="stDays">0<span class="unit">天</span></span><span class="lbl">🌱 自我陪伴</span></div>
+      </section>
+    </section>
+
+    <section class="card" aria-label="正念呼吸">
+      <div class="card-head"><h2>🌬️ 正念呼吸疗愈</h2><span class="tag">4-4-4</span></div>
+      <p class="chart-note">跟随圆点起伏：吸气 4 秒 → 屏息 4 秒 → 呼气 4 秒。可开启语音引导。</p>
+      <div class="breath-orbit"><div class="breath-dot" id="breathDot"></div></div>
+      <div class="breath-stage" id="breathStage">准备开始</div>
+      <div class="breath-clock" id="breathClock">05:00</div>
+      <div class="breath-tip">默认 5 分钟，可暂停或重置。冥想会让心慢慢安静下来。</div>
+      <div class="ai-actions">
+        <button class="btn ghost small" id="voiceBtn">🔊 语音引导</button>
+        <button class="btn ghost small" id="breathPause">⏸ 暂停</button>
+        <button class="btn ghost small" id="breathReset">↺ 重置</button>
+      </div>
+    </section>
+
+    <section class="card" aria-label="情绪记录">
+      <div class="card-head"><h2>📖 我的情绪记录</h2><span class="tag" id="recCount">0 条</span></div>
+      <div class="searchbox">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+        <input type="text" id="recSearch" placeholder="搜索记录里的文字…" aria-label="搜索记录"/>
+      </div>
+      <div id="recordList"></div>
+      <div class="rec-ops"><button class="lk" id="exportBtn">📄 导出我的记录</button><button class="lk" id="clearBtn">🗑️ 清空我的记录</button></div>
+      <p class="chart-note" style="margin-top:14px; margin-bottom:0;">所有数据只保存在你自己的浏览器本地，不会上传到任何服务器。</p>
+    </section>
+
+    <section class="card" aria-label="七日情绪图表">
+      <div class="card-head"><h2>📊 七日情绪图表</h2><span class="tag">最近 7 天</span></div>
+      <p class="chart-note">过去 7 天每天记录的心情条数。</p>
+      <div id="chartBox"></div>
+      <div class="charts" style="margin-top:20px;">
+        <div>
+          <p class="chart-note" style="margin-bottom:10px; font-weight:600; color:var(--ink);">情绪分布</p>
+          <table class="mood-table"><thead><tr><th>情绪</th><th>次数</th></tr></thead><tbody id="moodTableBody"></tbody></table>
+        </div>
+        <div>
+          <div class="donut-wrap"><svg id="donutSvg" viewBox="0 0 150 150" width="150" height="150" role="img" aria-label="情绪占比环形图"></svg><div class="donut-ctr"><span class="big" id="donutTotal">0</span><span class="small">条记录</span></div></div>
+          <div class="legend" id="moodLegend"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<footer><span class="heart-beat">💗</span> 情绪树洞 · 匿名的自我照顾空间<br/>所有内容与记录仅存储在你自己的浏览器本地，不会上传服务器 🌿</footer>
+</main>
+
+<dialog id="loginDialog" aria-labelledby="loginTitle">
+  <div class="dlg-body">
+    <div class="dlg-head"><button class="dlg-close" aria-label="关闭" data-close="">×</button></div>
+    <h2 id="loginTitle" style="margin:0 0 16px;">🔐 登录 · 情绪树洞</h2>
+    <div class="auth-tabs"><button id="tabLogin" class="on">登录</button><button id="tabRegister">注册账号</button></div>
+    <div id="lgFields">
+      <div class="field" id="fgNick"><label for="lgNick">昵称（显示在广场）</label><input type="text" id="lgNick" maxlength="16" autocomplete="nickname"/></div>
+      <div class="field"><label for="lgName">用户名 / 账号</label><input type="text" id="lgName" maxlength="20" autocomplete="username"/></div>
+      <div class="field"><label for="lgPass">密码</label><input type="password" id="lgPass" maxlength="20" autocomplete="current-password"/></div>
+    </div>
+    <p class="error" id="lgError" role="alert"></p>
+    <div class="dlg-actions"><button class="btn" id="lgSubmit">登录</button></div>
+  </div>
+</dialog>
+
+<dialog id="breathModal" aria-labelledby="breathTitle">
+  <div class="dlg-body">
+    <div class="dlg-head"><button class="dlg-close" aria-label="关闭" data-close="">×</button></div>
+    <h2 id="breathTitle" style="margin:0 0 16px;">🌬️ 正念呼吸</h2>
+    <div class="breath-orbit"><div class="breath-dot" id="breathDotM"></div></div>
+    <div class="breath-stage" id="breathStageM">准备开始</div>
+    <div class="breath-clock" id="breathClockM">05:00</div>
+    <div class="breath-tip">吸气 → 屏息 → 呼气，跟着节奏呼吸。语音引导：<button id="voiceBtnM" class="lk">🔊 开启</button></div>
+    <div class="dlg-actions">
+      <button class="btn ghost" id="breathPauseM">⏸ 暂停</button>
+      <button class="btn ghost" id="breathResetM">↺ 重置</button>
+      <button class="btn" data-close="">结束练习</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="clearModal" aria-labelledby="clearTitle">
+  <div class="dlg-body">
+    <div class="dlg-head"><button class="dlg-close" aria-label="关闭" data-close="">×</button></div>
+    <h2 id="clearTitle" style="margin:0 0 8px;">🗑️ 清空所有记录？</h2>
+    <p class="chart-note">将删除你的全部情绪记录，此操作无法撤销。</p>
+    <div class="dlg-actions"><button class="btn ghost" data-close="">取消</button><button class="btn" id="clearConfirm">确认清空</button></div>
+  </div>
+</dialog>
+
+<dialog id="delModal" aria-labelledby="delTitle">
+  <div class="dlg-body">
+    <div class="dlg-head"><button class="dlg-close" aria-label="关闭" data-close="">×</button></div>
+    <h2 id="delTitle" style="margin:0 0 8px;">删除这条记录？</h2>
+    <p class="chart-note" id="delText">将删除这条情绪记录，此操作无法撤销。</p>
+    <div class="dlg-actions"><button class="btn ghost" data-close="">取消</button><button class="btn" id="delConfirm">确认删除</button></div>
+  </div>
+</dialog>
+
+<div id="toast" role="status"></div>
+
+<script>
+(function () {
+  'use strict';
+  function $(id) { return document.getElementById(id); }
+  function killLoader() { try { var ld = $('pageLoader'); if (ld) { ld.classList.add('gone'); setTimeout(function(){ ld.style.display = 'none'; }, 600); } } catch (e) {} }
+  function appReady() { try { $('mainWrap').hidden = false; killLoader(); } catch (e) { try { $('mainWrap').hidden = false; } catch (e2) {} } }
+
+  var STORE = 'coze-mood-tree-v1';
+  var USER_KEY = 'coze-mood-users-v1';
+  var CURRENT_KEY = 'coze-mood-current';
+  var BOARD_KEY = 'coze-mood-board-v1';
+
+  var records = [];
+  var users = [];
+  var board = [];
+  var currentUser = null;      // 用户名
+  var selectedMood = '';
+  var voiceOn = false;
+  var deleteId = null;
+  var clearDelTarget = null;   // 'clear' 或记录 id
+
+  // ---------- 存储 ----------
+  function read(key, fallback) { try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (e) { return fallback; } }
+  function write(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+  function loadAll() { records = read(STORE, []); users = read(USER_KEY, []); board = read(BOARD_KEY, []); if (!Array.isArray(records)) records = []; if (!Array.isArray(users)) users = []; if (!Array.isArray(board)) board = []; currentUser = (function(){ try { var n = localStorage.getItem(CURRENT_KEY); return n || null; } catch(e){ return null; } })(); }
+  function saveRecords() { write(STORE, records); }
+
+  function toast(msg) { var t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._tm); t._tm = setTimeout(function(){ t.classList.remove('show'); }, 2300); }
+  function showErr(msg) { var e = $('globalError'); e.textContent = msg; e.classList.add('show'); setTimeout(function(){ e.classList.remove('show'); }, 3200); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; }); }
+  function hash(s) { var h = 5381; for (var i = 0; i < s.length; i++) { h = ((h << 5) + h) + s.charCodeAt(i); h |= 0; } return 'h' + Math.abs(h); }
+  function fmtTime(ts) { var d = new Date(ts); function p(n){return (n<10?'0':'')+n;} return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes()); }
+  function today0() { var d = new Date(); d.setHours(0,0,0,0); return d.getTime(); }
+
+  // ---------- 主题 ----------
+  function applyTheme(t) { document.documentElement.classList.toggle('dark', t === 'dark'); }
+  function initTheme() {
+    try { var saved = localStorage.getItem('mood-theme'); if (saved) { applyTheme(saved); return; } } catch (e) {}
+    try { applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); } catch (e) {}
+  }
+  $('themeToggle').addEventListener('click', function () {
+    var dark = document.documentElement.classList.contains('dark');
+    var next = dark ? 'light' : 'dark'; applyTheme(next);
+    try { localStorage.setItem('mood-theme', next); } catch (e) {}
+  });
+
+  // ---------- 导航 ----------
+  var tabs = document.querySelectorAll('.navtab button');
+  var panels = { home: $('pt-home'), advise: $('pt-advise'), square: $('pt-square'), me: $('pt-me') };
+  function switchTab(name, params) {
+    for (var i = 0; i < tabs.length; i++) tabs[i].classList.toggle('on', tabs[i].getAttribute('data-tab') === name);
+    for (var k in panels) panels[k].classList.toggle('on', k === name);
+    if (name === 'square') renderBoard();
+    if (name === 'me') renderMe();
+    if (name === 'home' && params && params.scroll) try { $('pt-home').scrollIntoView({ behavior: 'smooth' }); } catch (e) {}
+  }
+  for (var i = 0; i < tabs.length; i++) (function (b) { b.addEventListener('click', function () { switchTab(b.getAttribute('data-tab')); }); })(tabs[i]);
+
+  // ---------- 语录轮播 ----------
+  var quotes = [
+    { t: '慢慢来，谁不是一边崩溃一边自愈。', tag: '💌 今日治愈时刻' },
+    { t: '你已经很棒了，记得也要对自己温柔一点。', tag: '🌿 来自树洞的提醒' },
+    { t: '难过的时候，允许自己停一停。', tag: '🍃 慢一点也没关系' },
+    { t: '会好起来的，一切都会慢慢变好的。', tag: '🌟 相信明天' },
+    { t: '你不是一个人在扛。', tag: '🫂 我们都在' },
+    { t: '温柔是你，坚强也是你。', tag: '🌸 记得夸夸自己' }
+  ];
+  var qi = 0;
+  function nextQuote() { qi = (qi + 1) % quotes.length; var q = quotes[qi]; var el = $('quoteText'); try { el.style.opacity = '0'; } catch (e) {} setTimeout(function () { el.textContent = q.t; try { el.style.opacity = '1'; } catch (e) {} }, 320); }
+  setInterval(nextQuote, 6000);
+
+  // ---------- 情绪选择与字数 ----------
+  var moodBtns = document.querySelectorAll('.mood-btn');
+  for (var m = 0; m < moodBtns.length; m++) (function (b) {
+    b.addEventListener('click', function () {
+      for (var x = 0; x < moodBtns.length; x++) moodBtns[x].classList.remove('on');
+      b.classList.add('on');
+      selectedMood = b.getAttribute('data-mood');
+      $('moodTag').textContent = selectedMood;
+      var chip = $('pickChip'); chip.textContent = '已选择：' + selectedMood; chip.classList.add('show');
+      $('inputError').classList.remove('show');
+    });
+  })(moodBtns[m]);
+
+  function updCount(el, max, out, limitEl) {
+    var n = el.value.length; out.textContent = n;
+    var lim = n >= max * 0.9; out.closest('.count').classList.toggle('limit', lim);
+  }
+  $('moodInput').addEventListener('input', function () { updCount($('moodInput'), 1200, $('wordCount')); });
+  $('advInput').addEventListener('input', function () { updCount($('advInput'), 300, $('advCount')); });
+  $('boardInput').addEventListener('input', function () { updCount($('boardInput'), 300, $('boardCount2')); });
+
+  // ---------- 账号系统 ----------
+  function getUser(name) { for (var i = 0; i < users.length; i++) if (users[i].name === name) return users[i]; return null; }
+  function setCurrent(name) { currentUser = name; try { if (name) localStorage.setItem(CURRENT_KEY, name); else localStorage.removeItem(CURRENT_KEY); } catch (e) {} renderUser(); }
+  function renderUser() {
+    var u = currentUser ? getUser(currentUser) : null;
+    $('userName').textContent = u ? u.nick : '未登录';
+    $('userAvatar').hidden = !u; $('userAvatar').textContent = u ? u.nick.charAt(0) : '?';
+    $('loginBtn').hidden = !!u; $('logoutBtn').hidden = !u;
+  }
+  $('loginBtn').addEventListener('click', function () { openLogin('login'); });
+  $('logoutBtn').addEventListener('click', function () { setCurrent(null); toast('已退出登录'); switchTab('home'); });
+
+  // 登录弹窗
+  var lgMode = 'login';
+  function openLogin(mode) {
+    lgMode = mode || 'login';
+    $('lgError').classList.remove('show');
+    $('fgNick').style.display = lgMode === 'register' ? 'block' : 'none';
+    $('lgSubmit').textContent = lgMode === 'register' ? '注册并登录' : '登录';
+    $('tabLogin').classList.toggle('on', lgMode === 'login');
+    $('tabRegister').classList.toggle('on', lgMode === 'register');
+    $('lgName').value = ''; $('lgPass').value = ''; $('lgNick').value = '';
+    $('loginDialog').showModal();
+    setTimeout(function () { $('lgName').focus(); }, 60);
+  }
+  $('tabLogin').addEventListener('click', function () { openLogin('login'); });
+  $('tabRegister').addEventListener('click', function () { openLogin('register'); });
+  $('lgSubmit').addEventListener('click', function () {
+    var name = $('lgName').value.trim(); var pass = $('lgPass').value; var err = $('lgError');
+    if (lgMode === 'register') {
+      var nick = $('lgNick').value.trim();
+      if (!name || !pass || !nick) { err.textContent = '请完整填写账号、昵称与密码'; err.classList.add('show'); return; }
+      if (name.length < 2 || name.length > 20) { err.textContent = '用户名需 2–20 个字符'; err.classList.add('show'); return; }
+      if (pass.length < 6) { err.textContent = '密码至少 6 位'; err.classList.add('show'); return; }
+      if (getUser(name)) { err.textContent = '该用户名已被注册'; err.classList.add('show'); return; }
+      users.push({ name: name, nick: nick, pass: hash(pass), created: Date.now() });
+      write(USER_KEY, users);
+      setCurrent(name);
+      $('loginDialog').close(); toast('欢迎你，' + nick + ' 🌿'); switchTab('home');
+    } else {
+      var u = getUser(name);
+      if (!u || u.pass !== hash(pass)) { err.textContent = '用户名或密码不正确'; err.classList.add('show'); return; }
+      setCurrent(name); $('loginDialog').close(); toast('欢迎回来，' + u.nick + ' 🌿'); switchTab('home');
+    }
+  });
+
+  // 面板内登录入口
+  $('boardLoginCta').addEventListener('click', function () { openLogin('login'); });
+  $('meLoginCta').addEventListener('click', function () { openLogin('login'); });
+
+  // ---------- 需要登录时才允许的动作 ----------
+  function requireLogin(cb) { var u = currentUser ? getUser(currentUser) : null; if (!u) { openLogin('login'); return false; } return true; }
+
+  // ---------- AI 治愈回信 ----------
+  function pickReply(mood, text) {
+    var t = text ? text : '';
+    var cat = '通用';
+    if (mood.indexOf('平静') >= 0) cat = '平静';
+    else if (mood.indexOf('低落') >= 0) cat = '低落';
+    else if (mood.indexOf('焦虑') >= 0) cat = '焦虑';
+    else if (mood.indexOf('愤怒') >= 0) cat = '愤怒';
+    else if (mood.indexOf('期待') >= 0) cat = '期待';
+    if (/工|学|业绩|kpi|加班|压力|累/.test(t)) cat = '压力';
+    if (/失|分手|感情|他|她|喜欢/.test(t)) cat = '感情';
+    if (/睡|失眠/.test(t)) cat = '睡眠';
+    if (/迷茫|不知道|方向|未来/.test(t)) cat = '迷茫';
+    if (/自己|不够好|自卑|否定/.test(t)) cat = '自尊';
+    var map = {
+      '平静': '此刻的平静很难得，是生活赠予你的礼物。\
+\n愿你把这份安稳多留一会儿，在一杯温水、一段音乐里，好好安放自己。\
+\n等风来，等花开，也等等那个已经足够好的自己。',
+      '低落': '情绪低落的时候，不用急着把自己拽起来。\
+\n允许自己难过，也请相信，低落从来不会永远停留。\
+\n黑夜再长，也总会有天亮的时候。今天辛苦你了，先好好休息。',
+      '焦虑': '焦虑常常来自对不确定的担心，但它也在提醒你：你很在乎正在做的事。\
+\n把目光放回眼前细小的一步，做能做的，剩下的交给时间。\
+\n深呼吸，你比你想象中更稳。',
+      '愤怒': '愤怒是一种力气，说明你在乎、你不愿妥协。\
+\n先别急着爆发，给情绪一点空间落下来。\
+\n等平静之后，你会更清楚想要守护什么。你已经很有勇气了。',
+      '期待': '心里装着期待，是一件很美好的事。\
+\n无论结果如何，此刻的愿望都值得被认真对待。\
+\n愿你所有的期待，都一步步走向那个想要的答案。',
+      '压力': '感到压力，不是因为你不努力，而是因为你在乎，这些都压在你肩上。\
+\n试着把大目标拆成今天能做的一件小事，一点点推进就好。\
+\n你已经撑了很久了，试着允许自己松一口气，慢慢来。',
+      '感情': '感情里的起伏，往往也是最让人成长的部分。\
+\n难过就哭，想念就让它经过，不必强求立刻释怀。\
+\n无论如何，你首先是你自己，你的完整不需要靠谁来成全。',
+      '睡眠': '睡不好，常常是因为心里还亮着灯。\
+\n睡前把惦记的事写下来放在一边，给大脑一个放过自己的信号。\
+\n放下手机，闭眼，深呼吸。今晚，世界可以等你。',
+      '迷茫': '迷茫不是停滞，是你正在认真寻找方向时的必经之路。\
+\n不必现在就想清楚所有答案，走好眼下一步，路会慢慢清晰。\
+\n停下来思考，其实也是前进的一种方式。',
+      '自尊': '你已经很努力了，别总拿别人的尺子量自己。\
+\n那些"不够好"的声音，常常只是暂时的疲惫在放大。\
+\n请像对待好朋友一样，温柔地对自己说一句：你已经做得很好了。',
+      '通用': '谢谢你愿意把心事说给我听，这本身的勇气就很珍贵。\
+\n情绪没有对错，每一种都值得被好好安放。\
+\n慢慢来，把此刻的自己照顾好，剩下的，我们一步一步来。'
+    };
+    return map[cat];
+  }
+
+  // 提交情绪
+  $('submitBtn').addEventListener('click', function () {
+    if (!requireLogin()) { toast('请先登录后再安放心事'); return; }
+    var text = $('moodInput').value.trim();
+    if (!selectedMood && !text) { $('inputError').textContent = '请选择情绪，或写点什么留在这里。'; $('inputError').classList.add('show'); return; }
+    if (text.length > 1200) { $('inputError').textContent = '内容不能超过 1200 字。'; $('inputError').classList.add('show'); return; }
+    $('inputError').classList.remove('show');
+    var rec = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), mood: selectedMood || '😌 平静安然', text: text, ts: Date.now(), owner: currentUser };
+    records.push(rec); saveRecords();
+    var reply = pickReply(rec.mood, text);
+    $('aiReply').textContent = reply;
+    var ac = $('aiCard'); ac.hidden = false;
+    $('moodInput').value = ''; $('wordCount').textContent = '0'; selectedMood = ''; $('moodTag').textContent = '未选择情绪'; $('pickChip').classList.remove('show');
+    for (var x = 0; x < moodBtns.length; x++) moodBtns[x].classList.remove('on');
+    renderMe(); renderBoard();
+    try { ac.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+    toast('已安放，愿你好受一些 🌿');
+  });
+
+  // ---------- AI 劝导 · 多轮对话引导 ----------
+  var GUIDE = {
+    pressure: {
+      label: '压力', re: [/压|加班|kpi|业绩|活多|累|忙|负荷|撑不住/],
+      first: ['我看见你最近一直在扛着很多。', '压力大其实不是你的问题，是你太习惯把责任往自己身上揽了。', '我想先反问你一句：此刻最重的那份压力，是一件具体的事，还是很多事叠在一起？', '我们不妨一起，把那团乱麻理出一条线。'],
+      deep: ['试着把"我好累"换成"我具体在为什么累"，压力常常会立刻变小。', '把此刻最占心的 3 件事写下来，按"今天必须做 / 本周再做 / 其实可以放一放"排个序。', '你会发现，真正"必须立刻面对"的往往只有一件。', '愿意就先做那一件，剩下的交给我陪你慢慢拆。'] },
+    sleep: {
+      label: '睡眠', re: [/睡|失眠|夜|睡不着/],
+      first: ['睡不着的时候，说明心里还亮着一盏灯。', '身体想休息，但心还在替你守着那些没处理完的事。', '我们不和失眠对抗，慢慢来。', '告诉我：你是"翻来覆去睡不着"，还是"醒来就很难再睡回去"？'],
+      deep: ['今晚试试这个顺序：睡前 1 小时放下手机 → 写一张"明天待办收尾"清单 → 只留暖色光 + 慢慢呼吸。', '把惦记的事写下来放一边，等于给大脑一个"不用再替我守着它"的信号。', '如果还醒着，就温和地对自己说：睡不着也没关系，今晚我能照顾好自己。', '睡眠会回来的，别急。'] },
+    direction: {
+      label: '迷茫', re: [/迷茫|方向|不知道|未来|选择|毕业|转行|没目标/],
+      first: ['迷茫不是停在原地，是你正在认真寻找方向。', '会站在岔路口的人，其实已经在向前了。', '我想知道，此刻你更怕的是"选错"，还是"根本没有可选"？'],
+      deep: ['先别急着要一个确定答案，把纠结写成两张清单："我担心失去的"和"我期待拥有的"。', '迷茫的时候，最有用的通常不是硬想，而是迈出一小步去试一次。', '哪怕一天只做一件"朝哪个方向都不算错的小事"，路都会慢慢清晰。', '你已经在很认真地找了。'] },
+    relation: {
+      label: '人际', re: [/朋友|同事|父母|相处|关系|合不|被孤立|社恐|不敢|陌生人/],
+      first: ['和人相处的不顺，往往最让人又委屈又自我怀疑。', '但我想先告诉你：关系里出现卡点，不一定就是你的问题。', '可以让我澄清一下吗——是"怕被讨厌"让你们的距离变远，还是"相处本身已经有了误会"？'],
+      deep: ['试着区分两件事："对方对你的期待"和"你真正想要的关系样貌"。', '不舒服的时候，把真实的感受说出来——说"我感到…"，而不是"你总是…"。', '真正在乎你的人，是愿意听你好好把话说完的。', '先从一句真诚的"我最近有点累"开始，很多关系会悄悄松动。'] },
+    selfesteem: {
+      label: '自我否定', re: [/不够好|自卑|否定|没价值|没用|废物|讨厌自己/],
+      first: ['对自己苛刻的人，往往对世界最温柔。', '你心里那个"不够好"的声音，很可能只是太累了，在把缺点放大。', '我想请你想一件小事：最近有没有因为你的什么，别人真诚地感谢过你？'],
+      deep: ['从今天起，每天记下"一件我做到了的小事"，哪怕是"按时吃了顿热饭"。', '试着把评判换成观察：我不是"没做好"，而是"做完了，只是没达到想象"。', '你撑了那么久，其实你比自己以为的更努力。', '愿意的话，把今天想送给自己的那句温柔的话发给我，我替树洞还给你。'] },
+    breakoff: {
+      label: '感情', re: [/失恋|分手|离婚|结束|他不要|她不要|老公|老婆|前任/],
+      first: ['失去一段重要的关系，会痛，这很正常，也值得被尊重。', '请不要急着逼自己"快点好起来"，心碎需要时间慢慢愈合。', '我可以问问你吗：此刻你最放不下的，是"那个人"，还是"那段被好好爱着的自己"？'],
+      deep: ['允许自己有难过，这本身就是愈合的一部分。', '把想说却没说出口的话写下来，收进树洞就好，不必寄给谁。', '生活正在悄悄重新长出"喜欢"的能力，给它一点时间。', '你值得被好好爱着，不如就从重新爱自己开始。'] },
+    calm: {
+      label: '轻松聊聊', re: [/轻松|聊点|随便|日常|今天|开心|小事|随便聊聊/],
+      first: ['有时候不聊"问题"，只是安静地陪着你，本身也是一种疗愈。', '今天有没有那么一个瞬间，让你觉得还挺好的？', '哪怕只是一阵风、一杯温水、一首歌，都算数。'],
+      deep: ['记住那种"还好"的感觉，它就是你的充电站。', '以后觉得累的时候，多回想这两个瞬间，情绪会柔和不少。', '不用急，也不需要一直坚强。需要的时候，我就在。'] }
+  };
+
+  var chatTopic = null, chatStage = 0, chatBusy = false;
+  var QUICK = ['压力好大', '好像又失眠了', '有点迷茫', '和同事处不来', '觉得自己不够好', '放不下一段感情', '聊点轻松的'];
+  function detectTopic(t) { for (var k in GUIDE) { var rs = GUIDE[k].re; for (var i = 0; i < rs.length; i++) { if (rs[i].test(t)) return k; } } return null; }
+  function guideReply(kind, stage) { var g = GUIDE[kind]; var arr = stage === 1 ? g.first : g.deep; return (stage === 1 ? '' : '（接着刚才的话题，我们再近一步）\n') + arr.join('\n'); }
+  function addMsg(role, text) { var b = $('chatBody'); var d = document.createElement('div'); d.className = 'msg ' + role; d.textContent = text; b.appendChild(d); b.scrollTop = b.scrollHeight; }
+  function addSys(text) { var b = $('chatBody'); var d = document.createElement('div'); d.className = 'msg sys'; d.textContent = text; b.appendChild(d); b.scrollTop = b.scrollHeight; }
+  function showTyping() { var b = $('chatBody'); var t = document.createElement('div'); t.className = 'typing'; t.id = 'typingX'; t.innerHTML = '<i>整理思绪中</i>…'; b.appendChild(t); b.scrollTop = b.scrollHeight; }
+  function hideTyping() { var t = $('typingX'); if (t) t.remove(); }
+  function sendChat() {
+    if (chatBusy) return;
+    var input = $('advInput'); var text = input.value.trim();
+    if (!text) { toast('写点什么吧，我一直在听'); return; }
+    if (text.length > 300) { toast('一次说 300 字以内就好，我们可以多聊几轮'); return; }
+    addMsg('me', text); input.value = ''; $('advCount').textContent = '0';
+    chatBusy = true; showTyping();
+    setTimeout(function () {
+      hideTyping();
+      var kind = detectTopic(text);
+      if (!kind) {
+        if (chatTopic) { chatStage++; addMsg('ai', guideReply(chatTopic, chatStage > 2 ? 2 : chatStage)); }
+        else { addMsg('ai', '我在听，也想多陪陪你。你可以点一个下面的快捷话题，或直接告诉我此刻的感受。'); }
+      } else if (kind === chatTopic) {
+        chatStage++; addMsg('ai', guideReply(kind, chatStage > 2 ? 2 : chatStage));
+      } else {
+        chatTopic = kind; chatStage = 1; addMsg('ai', guideReply(kind, 1));
+      }
+      chatBusy = false;
+    }, 700 + Math.random() * 500);
+  }
+  $('advSend').addEventListener('click', sendChat);
+  $('advInput').addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } });
+
+  (function renderQuick() { var q = $('chatQuick'); q.innerHTML = ''; for (var i = 0; i < QUICK.length; i++) (function (t) { var b = document.createElement('button'); b.className = 'quick-chip'; b.textContent = t; b.addEventListener('click', function () { $('advInput').value = t; sendChat(); }); q.appendChild(b); })(QUICK[i]); })();
+  addSys('对话完全在你本地进行，匿名、安全、不留下痕迹');
+  setTimeout(function () { showTyping(); setTimeout(function () { hideTyping(); addMsg('ai', '嗨，我是树洞里的引路小树。\n我不会评判、也不会打断，只想好好听你说。\n此刻，你心里最堵着的那件事，是什么？'); $('chatBody').scrollTop = $('chatBody').scrollHeight; }, 700); }, 400);
+
+  // ---------- 广场 ----------
+  function renderUserForBoard() {
+    var u = currentUser ? getUser(currentUser) : null;
+    $('boardComposer').hidden = !!u ? false : true;
+    $('boardLoginHint').style.display = u ? 'none' : 'block';
+  }
+  $('boardSend').addEventListener('click', function () {
+    if (!requireLogin()) return;
+    var text = $('boardInput').value.trim();
+    if (!text) { toast('先写下想说的话～'); return; }
+    var u = getUser(currentUser); var anon = $('boardAnon').checked;
+    board.unshift({ id: Date.now().toString(36), name: anon ? '匿名树洞' : u.nick, text: text, anon: anon, ts: Date.now() });
+    write(BOARD_KEY, board);
+    $('boardInput').value = ''; $('boardAnon').checked = false; $('boardCount2').textContent = '0';
+    renderBoard(); renderUserForBoard(); toast('已发布到广场 🌟');
+  });
+  function renderBoard() {
+    $('boardCount').textContent = board.length + ' 条';
+    var list = $('boardList');
+    if (!board.length) { list.innerHTML = '<div class="empty-illus"><div class="art">🕊️</div><p>还没有人留言，来做第一个温暖的人吧。</p></div>'; return; }
+    var html = '';
+    for (var i = 0; i < board.length; i++) {
+      var it = board[i];
+      html += '<div class="board-item"><div class="b-head"><span class="b-name">' + esc(it.name) + '</span>' + (it.anon ? '<span class="b-anon">匿名</span>' : '') + '<span class="b-time">' + fmtTime(it.ts) + '</span></div><p class="b-text">' + esc(it.text) + '</p></div>';
+    }
+    list.innerHTML = html;
+  }
+
+  // ---------- 我的 ----------
+  function myRecords() { var u = currentUser ? getUser(currentUser) : null; if (!u) return []; return records.filter(function (r) { return r.owner === u.name; }); }
+  function renderMe() {
+    var u = currentUser ? getUser(currentUser) : null;
+    $('meLoginHint').style.display = u ? 'none' : 'block';
+    $('meBlock').hidden = !u;
+    if (u) {
+      var d = new Date(u.created); $('meSince').textContent = '自 ' + d.getFullYear() + '-' + (d.getMonth() + 1 < 10 ? '0' : '') + (d.getMonth() + 1) + '-' + (d.getDate() < 10 ? '0' : '') + d.getDate() + ' 陪伴你';
+    }
+    renderUser(); renderStats(); renderRecords(); renderChart();
+  }
+  function renderStats() {
+    var list = myRecords(); var t0 = today0();
+    var today = list.filter(function (r) { return r.ts >= t0; }).length;
+    var days = 0; if (list.length) { var first = new Date(Math.min.apply(null, list.map(function (r) { return r.ts; }))); first.setHours(0, 0, 0, 0); days = Math.max(0, Math.round((t0 - first.getTime()) / 86400000)) + 1; }
+    $('stToday').innerHTML = today + '<span class="unit">条</span>';
+    $('stTotal').innerHTML = list.length + '<span class="unit">条</span>';
+    $('stDays').innerHTML = days + '<span class="unit">天</span>';
+  }
+  function renderRecords() {
+    var list = myRecords(); var q = ($('recSearch').value || '').trim();
+    var filtered = q ? list.filter(function (r) { return r.text.indexOf(q) >= 0; }) : list;
+    $('recCount').textContent = filtered.length + ' 条';
+    var wrap = $('recordList');
+    if (!filtered.length) { wrap.innerHTML = '<div class="empty-illus"><div class="art">🌱</div><p>' + (list.length ? '没有匹配的记录。' : '还没有记录，去树洞安放第一件心事吧。') + '</p></div>'; return; }
+    var html = '';
+    for (var i = 0; i < filtered.length; i++) {
+      var r = filtered[i]; html += '<div class="rec"><div class="rec-dot">' + r.mood.charAt(0) + '</div><div class="rec-body"><div class="rec-head"><span class="rec-mood">' + esc(r.mood) + '</span><span class="rec-time">' + fmtTime(r.ts) + '</span></div><p class="rec-text">' + esc(r.text) + '</p></div><button class="rec-del" data-del="' + r.id + '" aria-label="删除这条记录">✕</button></div>';
+    }
+    wrap.innerHTML = html;
+    var dels = wrap.querySelectorAll('[data-del]');
+    for (var d = 0; d < dels.length; d++) (function (b) { b.addEventListener('click', function () { deleteId = b.getAttribute('data-del'); $('delText').textContent = '将删除这条情绪记录，此操作无法撤销。'; $('delModal').showModal(); }); })(dels[d]);
+  }
+  $('recSearch').addEventListener('input', renderRecords);
+  $('delConfirm').addEventListener('click', function () {
+    if (deleteId) { records = records.filter(function (r) { return r.id !== deleteId; }); saveRecords(); deleteId = null; }
+    $('delModal').close(); renderMe(); toast('已删除');
+  });
+  $('exportBtn').addEventListener('click', function () {
+    var list = myRecords(); if (!list.length) { toast('还没有可导出的记录'); return; }
+    try { var blob = new Blob([JSON.stringify(list, null, 2)], { type: 'application/json' }); var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'moood-records-' + Date.now() + '.json'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href); toast('已导出 ' + list.length + ' 条记录'); }
+    catch (e) { showErr('导出失败：' + e.message); }
+  });
+  $('clearBtn').addEventListener('click', function () { clearDelTarget = 'clear'; $('clearModal').showModal(); });
+  $('clearConfirm').addEventListener('click', function () {
+    if (clearDelTarget === 'clear') { var u = currentUser; records = records.filter(function (r) { return r.owner !== u; }); saveRecords(); }
+    clearDelTarget = null; $('clearModal').close(); renderMe(); toast('已清空');
+  });
+
+  // ---------- 七日图表 ----------
+  function moodColor(mood) {
+    if (mood.indexOf('平静') >= 0) return '#c79a4a';
+    if (mood.indexOf('低落') >= 0) return '#8b8bd0';
+    if (mood.indexOf('焦虑') >= 0) return '#e1914f';
+    if (mood.indexOf('愤怒') >= 0) return '#c85f74';
+    if (mood.indexOf('期待') >= 0) return '#5eb18b';
+    return '#b7adb3';
+  }
+  function renderChart() {
+    var list = myRecords(); var box = $('chartBox');
+    // 柱状图
+    var days = []; var now = new Date(); now.setHours(0, 0, 0, 0);
+    for (var i = 6; i >= 0; i--) { var d = new Date(now.getTime() - i * 86400000); var key = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); days.push({ key: key, label: (d.getMonth() + 1) + '/' + d.getDate(), n: 0 }); }
+    var idx = {}; for (var a = 0; a < days.length; a++) idx[days[a].key] = a;
+    for (var b = 0; b < list.length; b++) { var dd = new Date(list[b].ts); var k = dd.getFullYear() + '-' + dd.getMonth() + '-' + dd.getDate(); if (idx[k] != null) days[idx[k]].n++; }
+    var max = 1; for (var c = 0; c < days.length; c++) max = Math.max(max, days[c].n);
+    var W = 640, H = 230, padL = 30, padB = 26, padT = 14, padR = 10;
+    var bw = (W - padL - padR) / days.length; var inner = bw * 0.5;
+    var htmlSvg = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="过去七天每天记录条数柱状图"><g font-size="11" fill="currentColor" font-family="system-ui">';
+    for (var x = 0; x < days.length; x++) {
+      var cx = padL + bw * x + bw / 2; var h = Math.max(3, (days[x].n / max) * (H - padT - padB)); var y = H - padB - h;
+      htmlSvg += '<line x1="' + cx + '" y1="' + (H - padB) + '" x2="' + cx + '" y2="' + y + '" stroke="var(--line)" stroke-width="' + inner + '" rx="4"/>';
+      htmlSvg += '<line x1="' + cx + '" y1="' + y + '" x2="' + cx + '" y2="' + (H - padB) + '" stroke="var(--accent)" stroke-width="' + inner + '" rx="4"/>';
+      htmlSvg += '<text x="' + cx + '" y="' + (y - 7) + '" text-anchor="middle" fill="var(--ink-soft)">' + days[x].n + '</text>';
+      htmlSvg += '<text x="' + cx + '" y="' + (H - 8) + '" text-anchor="middle">' + days[x].label + '</text>';
+    }
+    htmlSvg += '</g></svg>';
+    box.innerHTML = htmlSvg;
+
+    // 情绪分布
+    var counts = {}; for (var e = 0; e < list.length; e++) { var mk = list[e].mood; counts[mk] = (counts[mk] || 0) + 1; }
+    var keysAll = ['😌 平静安然', '😔 低落难过', '😰 焦虑紧绷', '😡 压抑愤怒', '✨ 温柔期待'];
+    var keys = keysAll.filter(function (k) { return counts[k]; });
+    // 表格
+    var tb = $('moodTableBody'); var tbHtml = '';
+    for (var f = 0; f < keysAll.length; f++) { var kk = keysAll[f]; var n = counts[kk] || 0; tbHtml += '<tr><td>' + esc(kk) + '</td><td>' + n + '</td></tr>'; }
+    if (!list.length) tbHtml = '<tr><td colspan="2">暂无数据</td></tr>';
+    tb.innerHTML = tbHtml;
+    // 环形图
+    var svg = $('donutSvg'); var total = list.length;
+    $('donutTotal').textContent = total;
+    var ld = $('moodLegend');
+    if (!total) { svg.innerHTML = ''; ld.innerHTML = '<span class="li"><span class="dot empty"></span>暂无数据</span>'; return; }
+    var colors = keys.map(moodColor);
+    var R = 56, cx = 75, cy = 75, C = 2 * Math.PI * R; var offset = 0; var segs = '';
+    for (var g = 0; g < keys.length; g++) {
+      var frac = counts[keys[g]] / total; var len = frac * C;
+      segs += '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="none" stroke="' + colors[g] + '" stroke-width="26" stroke-dasharray="' + len.toFixed(2) + ' ' + (C - len).toFixed(2) + '" stroke-dashoffset="' + (-offset).toFixed(2) + '" stroke-linecap="butt"/>';
+      offset += len;
+    }
+    svg.innerHTML = segs;
+    var lHtml = ''; for (var h = 0; h < keys.length; h++) lHtml += '<span class="li"><span class="dot" style="background:' + colors[h] + '"></span>' + esc(keys[h]) + '<span class="n">' + counts[keys[h]] + '</span></span>';
+    ld.innerHTML = lHtml;
+  }
+
+  // ---------- 正念呼吸 ----------
+  var breath = { inited: false, root: null, dot: null, stage: null, clock: null, voiceBtnRef: null, running: false, paused: false, remain: 300, phase: 0, tick: null, voice: false };
+  function breathInit(root) {
+    if (breath.inited && breath.root === root) return;
+    var prefix = root === 'modal' ? 'M' : '';
+    breath.root = root;
+    breath.dot = $('breathDot' + prefix); breath.stage = $('breathStage' + prefix); breath.clock = $('breathClock' + prefix);
+    breath.voiceBtnRef = $('voiceBtn' + prefix);
+    breath.running = false; breath.paused = false; breath.remain = 300; breath.stage.textContent = '准备开始'; breath.clock.textContent = '05:00';
+    if (breath.dot) { breath.dot.style.transform = 'scale(1)'; }
+    breath.inited = true;
+  }
+  function fmtClock(s) { var m = Math.floor(s / 60); var ss = s % 60; return (m < 10 ? '0' : '') + m + ':' + (ss < 10 ? '0' : '') + ss; }
+  function say(text) { if (!breath.voice) return; try { if (window.speechSynthesis) { window.speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(text); u.lang = 'zh-CN'; u.rate = 0.9; window.speechSynthesis.speak(u); } } catch (e) {} }
+  function tickBreath() {
+    if (!breath.running || breath.paused) return;
+    breath.remain = Math.max(0, breath.remain - 1);
+    breath.clock.textContent = fmtClock(breath.remain);
+    breath.phase = (breath.phase + 1) % 8;
+    var mapP = ['吸气', '呼吸', '呼吸', '屏息', '呼气', '呼吸', '呼吸', '屏息'];
+    var st = mapP[breath.phase];
+    breath.stage.textContent = st;
+    if (breath.dot) {
+      var s = (st === '吸气') ? 'scale(1.6)' : (st === '呼气' ? 'scale(0.62)' : 'scale(1.12)');
+      breath.dot.style.transform = s;
+    }
+    if (breath.phase % 2 === 0) say(st);
+    if (breath.remain <= 0) { stopBreath(); breath.stage.textContent = '练习完成，放松～'; }
+  }
+  function startBreath(root) {
+    breathInit(root);
+    if (!breath.running) {
+      breath.running = true; breath.paused = false; breath.remain = 300;
+      breath.clock.textContent = fmtClock(breath.remain);
+      $('breathPause' + (root === 'modal' ? 'M' : '')).textContent = '⏸ 暂停';
+      if (breath.tick) clearInterval(breath.tick);
+      breath.tick = setInterval(tickBreath, 1000);
+      nextPhase(); say('开始正念呼吸');
+      toast('开始正念呼吸～');
+    }
+  }
+  function nextPhase() {
+    if (!breath.running || breath.paused) return;
+    breath.phase = 0; breath.stage.textContent = '吸气'; if (breath.dot) breath.dot.style.transform = 'scale(1.6)'; say('吸气');
+  }
+  function stopBreath() { breath.running = false; breath.paused = false; if (breath.tick) clearInterval(breath.tick); breath.tick = null; try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {} }
+  function togglePause(root) {
+    if (!breath.running) return;
+    breath.paused = !breath.paused;
+    $('breathPause' + (root === 'modal' ? 'M' : '')).textContent = breath.paused ? '▶ 继续' : '⏸ 暂停';
+  }
+  function bindBreath(prefix) {
+    $('voiceBtn' + prefix).addEventListener('click', function () {
+      breath.voice = !breath.voice;
+      this.textContent = breath.voice ? '🔇 语音引导' : '🔊 语音引导';
+      if (breath.voice) say('语音引导已开启');
+    });
+    $('breathPause' + prefix).addEventListener('click', function () { togglePause(prefix === 'M' ? 'modal' : 'panel'); });
+    $('breathReset' + prefix).addEventListener('click', function () { stopBreath(); breathInit(prefix === 'M' ? 'modal' : 'panel'); toast('已重置'); });
+  }
+  bindBreath(''); bindBreath('M');
+  $('breathModal').addEventListener('close', function () { stopBreath(); try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {} });
+  function openBreathModal() { breathInit('modal'); $('breathModal').showModal(); startBreath('modal'); }
+
+  // 面板呼吸 action 入口
+  var panelChips = document.querySelectorAll('.linkchip[data-panel]');
+  for (var pc = 0; pc < panelChips.length; pc++) (function (b) {
+    b.addEventListener('click', function () {
+      var p = b.getAttribute('data-panel');
+      if (p === 'breath') { if (!requireLogin()) return; openBreathModal(); }
+      else if (p === 'records') { switchTab('me'); }
+      else if (p === 'chart') { switchTab('me'); }
+    });
+  })(panelChips[pc]);
+
+  // ---------- 通用弹窗关闭 ----------
+  document.querySelectorAll('dialog .dlg-close, dialog [data-close]').forEach(function (b) { b.addEventListener('click', function () { var d = b.closest('dialog'); if (d) d.close(); }); });
+  document.querySelectorAll('dialog').forEach(function (d) { d.addEventListener('click', function (e) { if (e.target === d) d.close(); }); });
+
+  // ---------- 启动 ----------
+  initTheme(); loadAll(); renderUser(); renderUserForBoard(); renderBoard();
+  window.addEventListener('hashchange', function () { try { var t = location.hash.replace('#', ''); if (panels[t]) switchTab(t); } catch (e) {} });
+  if (document.readyState === 'loading') { window.addEventListener('DOMContentLoaded', appReady); }
+  else { appReady(); }
+})();
+</script>
+
+</body></html>
