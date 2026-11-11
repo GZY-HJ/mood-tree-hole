@@ -21,9 +21,12 @@ jobs:
           python-version: "3.11"
 
       - name: Run self check
+        # 早期提交里还没有 scripts/verify_single_file.py，此时跳过而不是判失败
+        if: ${{ hashFiles('scripts/verify_single_file.py') != '' }}
         run: python scripts/verify_single_file.py index.html
 
       - name: Show artifact size
+        if: ${{ hashFiles('index.html') != '' }}
         run: |
           echo "index.html 体积：$(wc -c < index.html) 字节"
           echo "index.html 行数：$(wc -l < index.html) 行"
